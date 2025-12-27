@@ -7,5 +7,5 @@ def _create_profile(path: str):
         browser = p.chromium.launch_persistent_context(
             user_data_dir=user_data_dir
         )
-        browser.close()
+        #browser.close()
         print(f"Perfil creado exitosamente en: {path}\n")
