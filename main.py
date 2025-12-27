@@ -1,7 +1,7 @@
 import os
 from src.scraper import CallScraper
 from src.utils import _create_profile
-from settings import USER_DATA_DIR
+from settings import *
 
 
 if not os.path.exists(USER_DATA_DIR):
