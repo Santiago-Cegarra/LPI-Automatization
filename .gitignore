@@ -5,3 +5,5 @@ env/
 
 # Perfiles de chrome
 profile*/
+#Archivos de Excel
+*.xlsx
