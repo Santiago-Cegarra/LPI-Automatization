@@ -1,6 +1,7 @@
 import pandas as pd
+from settings import EXCEL_ROUTE, EXCEL_SHEET
 
-def cargar_datos(archivo='.\src\liks.xlsx', sheet='Florida'):
+def cargar_datos(archivo=EXCEL_ROUTE , sheet=EXCEL_SHEET):
     df = pd.read_excel(archivo, sheet_name=sheet, header=0, skiprows=range(1, 153))
     df[["NOMBRE", "APELLIDO"]] = df["NOMBRE COMPLETO"].str.split(pat=" ", n=1, expand=True)
     df[["CALLE", "CIUDAD", "ESTADO_ZIP"]] = df["DIRECCION"].str.split(pat=",", expand=True)
