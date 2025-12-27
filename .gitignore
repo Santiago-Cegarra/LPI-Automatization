@@ -1,0 +1,7 @@
+__pycache__/
+
+venv/
+env/
+
+# Perfiles de chrome
+profile*/
