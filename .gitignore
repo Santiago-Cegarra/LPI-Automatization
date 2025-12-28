@@ -5,5 +5,7 @@ env/
 
 # Perfiles de chrome
 profile*/
-#Archivos de Excel
+# Archivos de Excel
 *.xlsx
+# Propiedades del scraper
+src/scraper_properties.py
