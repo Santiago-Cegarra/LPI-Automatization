@@ -9,4 +9,11 @@ if not os.path.exists(USER_DATA_DIR):
 
 scraper = CallScraper(user_data_dir=USER_DATA_DIR)
 scraper.init_scraper()
-#print(load_data())
+
+def printdata():
+    personas = load_data()
+    for persona in personas:
+        print(persona)
+        print("\n")
+
+#printdata()
