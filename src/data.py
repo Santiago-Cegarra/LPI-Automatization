@@ -2,6 +2,7 @@ import pandas as pd
 from settings import EXCEL_ROUTE, EXCEL_SHEET
 import unicodedata
 
+
 def normalizar_texto(texto):
     if pd.isna(texto):  # Si es NaN o None
         return ""
@@ -11,9 +12,10 @@ def normalizar_texto(texto):
     texto = ''.join(char for char in texto if unicodedata.category(char) != 'Mn')
     return texto
 
+
 def load_data(archivo=EXCEL_ROUTE, sheet=EXCEL_SHEET):
-    df = pd.read_excel(archivo, sheet_name=sheet, header=0, skiprows=range(1, 212))
-    #__import__("pdb").set_trace()
+    df = pd.read_excel(archivo, sheet_name=sheet, header=0, skiprows=range(1, 231))
+    # __import__("pdb").set_trace()
     df[["NOMBRE", "APELLIDO"]] = df["NOMBRE COMPLETO"].str.split(pat=" ", n=1, expand=True)
     df[["NOMBRE_CON", "APELLIDO_CON"]] = df["Conyuge"].str.split(pat=" ", n=1, expand=True)
     df[["CALLE", "CIUDAD", "ESTADO_ZIP"]] = df["DIRECCION"].str.split(pat=",", expand=True)
@@ -22,8 +24,10 @@ def load_data(archivo=EXCEL_ROUTE, sheet=EXCEL_SHEET):
     df['BDAY'] = pd.to_datetime(df["F.NACIMIENTO "], errors='coerce').dt.strftime('%m/%d/%Y')
     df['BDAYC'] = pd.to_datetime(df["Fecha NacimientoC"], errors='coerce').dt.strftime('%m/%d/%Y')
     df["NUMERO TLF"] = df["NUMERO TLF"].astype(str).str.replace('.0', '', regex=False)
-    
-    df = df.drop(columns=["NOMBRE COMPLETO", "DIRECCION", "ESTADO_ZIP", "F.NACIMIENTO ", "Fecha NacimientoC", "Conyuge"])
+    df['N DE ALIEN '] = df['N DE ALIEN '].astype(str).str.replace('.0', '', regex=False)
+    df['ALIEN N'] = df['ALIEN N'].astype(str).str.replace('.0', '', regex=False)
+
+    df = df.drop(columns=["NOMBRE COMPLETO", "DIRECCION", "ESTADO_ZIP", "F.NACIMIENTO ", "Fecha NacimientoC", "Conyuge"]) # NOQA
     columnas_texto = ["NOMBRE", "APELLIDO", "NOMBRE_CON", "APELLIDO_CON"]
     for col in columnas_texto:
         df[col] = df[col].apply(normalizar_texto)
