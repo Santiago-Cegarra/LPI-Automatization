@@ -9,25 +9,30 @@ def normalizar_texto(texto):
     texto = str(texto)
     # Normalizar
     texto = unicodedata.normalize('NFD', texto)
-    texto = ''.join(char for char in texto if unicodedata.category(char) != 'Mn')
+    texto = ''.join(char for char in texto if unicodedata.category(char) != 'Mn') # NOQA
     return texto
 
 
 def load_data(archivo=EXCEL_ROUTE, sheet=EXCEL_SHEET):
-    df = pd.read_excel(archivo, sheet_name=sheet, header=0, skiprows=range(1, 231))
+    df = pd.read_excel(archivo, sheet_name=sheet, header=0,
+                       # skiprows=range(1, 102)
+                       )
+    # print("COLUMNAS DETECTADAS:")
+    # for col in df.columns:
+    #     print(f"[{col}]")
     # __import__("pdb").set_trace()
-    df[["NOMBRE", "APELLIDO"]] = df["NOMBRE COMPLETO"].str.split(pat=" ", n=1, expand=True)
-    df[["NOMBRE_CON", "APELLIDO_CON"]] = df["Conyuge"].str.split(pat=" ", n=1, expand=True)
-    df[["CALLE", "CIUDAD", "ESTADO_ZIP"]] = df["DIRECCION"].str.split(pat=",", expand=True)
+    df[["NOMBRE", "APELLIDO"]] = df["NOMBRE COMPLETO"].str.split(pat=" ", n=1, expand=True) # NOQA
+    df[["NOMBRE_CON", "APELLIDO_CON"]] = df["Conyuge"].str.split(pat=" ", n=1, expand=True) # NOQA
+    df[["CALLE", "CIUDAD", "ESTADO_ZIP"]] = df["DIRECCION"].str.split(pat=",", expand=True) # NOQA
     df["ESTADO_ZIP"] = df["ESTADO_ZIP"].str.strip()
-    df[["ESTADO", "ZIP"]] = df["ESTADO_ZIP"].str.split(pat=" ", n=1, expand=True)
-    df['BDAY'] = pd.to_datetime(df["F.NACIMIENTO "], errors='coerce').dt.strftime('%m/%d/%Y')
-    df['BDAYC'] = pd.to_datetime(df["Fecha NacimientoC"], errors='coerce').dt.strftime('%m/%d/%Y')
-    df["NUMERO TLF"] = df["NUMERO TLF"].astype(str).str.replace('.0', '', regex=False)
-    df['N DE ALIEN '] = df['N DE ALIEN '].astype(str).str.replace('.0', '', regex=False)
-    df['ALIEN N'] = df['ALIEN N'].astype(str).str.replace('.0', '', regex=False)
+    df[["ESTADO", "ZIP"]] = df["ESTADO_ZIP"].str.split(pat=" ", n=1, expand=True) # NOQA
+    df['BDAY'] = pd.to_datetime(df["F. NACIMIENTO "], errors='coerce').dt.strftime('%m/%d/%Y') # NOQA
+    df['BDAYC'] = pd.to_datetime(df["Fecha NacimientoC"], errors='coerce').dt.strftime('%m/%d/%Y') # NOQA
+    df["NUMERO TLF"] = df["NUMERO TLF"].astype(str).str.replace('.0', '', regex=False) # NOQA
+    df['N DE ALIEN '] = df['N DE ALIEN '].astype(str).str.replace('.0', '', regex=False) # NOQA
+    df['ALIEN N'] = df['ALIEN N'].astype(str).str.replace('.0', '', regex=False) # NOQA
 
-    df = df.drop(columns=["NOMBRE COMPLETO", "DIRECCION", "ESTADO_ZIP", "F.NACIMIENTO ", "Fecha NacimientoC", "Conyuge"]) # NOQA
+    df = df.drop(columns=["NOMBRE COMPLETO", "DIRECCION", "ESTADO_ZIP", "F. NACIMIENTO ", "Fecha NacimientoC", "Conyuge"]) # NOQA
     columnas_texto = ["NOMBRE", "APELLIDO", "NOMBRE_CON", "APELLIDO_CON"]
     for col in columnas_texto:
         df[col] = df[col].apply(normalizar_texto)

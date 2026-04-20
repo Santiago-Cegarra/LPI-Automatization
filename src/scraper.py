@@ -1,6 +1,6 @@
 from playwright.sync_api import sync_playwright
 from playwright.sync_api import Page
-from settings import *
+from settings import EXCEL_SHEET, EXCEL_ROUTE, USERNAME, USER_DATA_DIR, PASSWORD # NOQA
 from src.scraper_properties import SELECTORS, URLS
 from src.data import load_data
 import time
@@ -38,7 +38,7 @@ class CallScraper:
         page.fill(SELECTORS["first_name"], persona['NOMBRE_CON'])
         page.fill(SELECTORS["last_name"], persona['APELLIDO_CON'])
         page.fill(SELECTORS["date_birth"], persona['BDAYC'])
-        page.click("text=Hombre")
+        page.click("text=Mujer")
         page.click("//div[@id='relationshipToPerson.name_input']")
         # __import__("pdb").set_trace()
         page.press("//input[@name='relationshipToPerson.name']", "Enter")
@@ -52,7 +52,7 @@ class CallScraper:
         page.check(SELECTORS["accept2"])
         page.click(SELECTORS["continue"])
         time.sleep(1)
-        page.click("text=Mujer")
+        page.click("text=Hombre")
         page.check(SELECTORS["nossn1"])
         page.click(SELECTORS["continue"])
         time.sleep(3)
@@ -78,7 +78,7 @@ class CallScraper:
         time.sleep(2)
         self.taxes(page)
         # menor de 19
-        page.wait_for_selector('//fieldset[@id="livesWithChildAtAddress_fieldset"]')
+        page.wait_for_selector('//fieldset[@id="livesWithChildAtAddress_fieldset"]') # NOQA
         time.sleep(2)
         # __import__("pdb").set_trace()
         page.click("//button[@aria-label='No']")
@@ -96,7 +96,7 @@ class CallScraper:
 
             if (input) {
                 input.focus();
-                input.value = "A-"+alienNumberValue;  // Usar el argumento       
+                input.value = "A-"+alienNumberValue;  // Usar el argumento
                 input.dispatchEvent(new Event('focus', { bubbles: true }));
                 input.dispatchEvent(new Event('input', { bubbles: true }));
                 input.dispatchEvent(new Event('change', { bubbles: true }));
@@ -111,7 +111,7 @@ class CallScraper:
 
             if (input) {
                 input.focus();
-                input.value = "A-"+alienNumberValue;  // Usar el argumento       
+                input.value = "A-"+alienNumberValue;  // Usar el argumento
                 input.dispatchEvent(new Event('focus', { bubbles: true }));
                 input.dispatchEvent(new Event('input', { bubbles: true }));
                 input.dispatchEvent(new Event('change', { bubbles: true }));
@@ -145,15 +145,15 @@ class CallScraper:
         self.fill_alien(page, alien_number)
         page.click(SELECTORS["continue"])
         time.sleep(5)
-        try:
-            botones = page.locator("button[aria-label='No']").all()
-            for boton in botones:
-                boton.click()
-                time.sleep(0.3)
-        except Exception as e:
-            print(f"Error al clickear botones 'No': {e}")
-        page.click(SELECTORS["continue"])
-        time.sleep(4)
+        # try:
+        #     botones = page.locator("button[aria-label='No']").all()
+        #     for boton in botones:
+        #         boton.click()
+        #         time.sleep(0.3)
+        # except Exception as e:
+        #     print(f"Error al clickear botones 'No': {e}")
+        # page.click(SELECTORS["continue"])
+        # time.sleep(4)
         # PERSONA 2 PERSONA 2 PERSONA 2 PERSONA 2
         buttons = page.locator("//fieldset//button[@aria-label='No']")
         count = buttons.count()
