@@ -1,6 +1,6 @@
 from playwright.sync_api import sync_playwright
 from playwright.sync_api import Page
-from settings import EXCEL_SHEET, EXCEL_ROUTE, USERNAME, USER_DATA_DIR, PASSWORD # NOQA
+from settings import EXCEL_SHEET, EXCEL_ROUTE, USERNAME, USER_DATA_DIR, PASSWORD, WH_UPDATE_SHEET # NOQA
 from src.scraper_properties import SELECTORS, URLS
 from src.data import load_data
 import time
@@ -9,8 +9,7 @@ import requests
 
 def update_row(fila_id):
     """Envía un POST a n8n para marcar la fila como Inscrita"""
-    # Tu URL real del nuevo webhook de producción
-    url_webhook_update = "https://santiagocegarra.app.n8n.cloud/webhook/actualizar_inscrito" # NOQA
+    url_webhook_update = WH_UPDATE_SHEET # NOQA
 
     payload = {
         "fila": fila_id,
@@ -79,18 +78,18 @@ class CallScraper:
         page.fill(SELECTORS["street"], persona["CALLE"])
         page.fill(SELECTORS["city"], persona["CIUDAD"])
         page.fill(SELECTORS["zip"], persona["ZIP"])
-        time.sleep(1)
-        page.click(SELECTORS["continue"])
         time.sleep(2)
+        page.click(SELECTORS["continue"])
+        time.sleep(3)
         if page.locator("text=¿Estás seguro de que su dirección es correcta?").is_visible(): # noqa
             page.click("button:has-text('Continuar')")
-        time.sleep(1)
+        time.sleep(2.5)
         page.fill(SELECTORS["phone"], persona["NUMERO TLF"])
         page.click("text=Enviar avisos en papel por correo")
         page.click(SELECTORS["continue"])
         time.sleep(10)
         self.addSpouse(page, persona)
-        time.sleep(1)
+        time.sleep(2)
         page.click(SELECTORS["continue"])
         page.click("//button[@aria-label='Sí']")
         page.click(SELECTORS["continue"])
@@ -199,7 +198,21 @@ class CallScraper:
                     time.sleep(0.3)
             except Exception as e:
                 print(f"Error al clickear botones 'No': {e}")
+        else:
+            try:
+                page.locator("button[aria-label='Sí']").first.click() 
+                page.wait_for_timeout(1000)
+                caja_bebes = page.locator("id=managedPeople[0][pregnancyBabiesExpected]_input") # NOQA
+                caja_bebes.click()
+                page.wait_for_timeout(500)
+                page.keyboard.type("1")
+                page.keyboard.press("Enter")
+                page.wait_for_timeout(500)
+            except Exception as e:
+                print(f"❌ Error en el flujo de 'Sí embarazada': {e}")
         time.sleep(2.5)
+        page.click(SELECTORS["continue"])
+        time.sleep(5)
         page.click("text=Panel")
         time.sleep(3)
         page.click("text=Iniciar Solicitud")

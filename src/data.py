@@ -1,6 +1,7 @@
 import requests
 import unicodedata
 from datetime import datetime
+from settings import WH_URL
 
 
 def normalizar_texto(texto):
@@ -13,11 +14,11 @@ def normalizar_texto(texto):
 
 
 def load_data():
-    webhook_url = "https://santiagocegarra.app.n8n.cloud/webhook/f857916b-615c-4f61-b2e4-4fced8c0d13f"
+    webhook_url = WH_URL
     print("Conectando con n8n para obtener datos...")
     try:
         response = requests.get(webhook_url)
-        response.raise_for_status() 
+        response.raise_for_status()
         raw_data = response.json()
     except Exception as e:
         print(f"Error al obtener datos de n8n: {e}")
