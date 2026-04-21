@@ -11,10 +11,11 @@ scraper = CallScraper(user_data_dir=USER_DATA_DIR)
 scraper.init_scraper()
 
 
-def printdata():
-    personas = load_data()
-    for persona in personas:
-        print(persona)
-        print("\n")
+# def printdata():
+#     personas = load_data()
+#     for persona in personas:
+#         print(persona)
+#         print("\n")
+
 
 # printdata()

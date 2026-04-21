@@ -1,41 +1,106 @@
-import pandas as pd
-from settings import EXCEL_ROUTE, EXCEL_SHEET
+import requests
 import unicodedata
+from datetime import datetime
 
 
 def normalizar_texto(texto):
-    if pd.isna(texto):  # Si es NaN o None
+    if texto is None or str(texto).lower() == 'nan':
         return ""
     texto = str(texto)
-    # Normalizar
+    # Normalizar (eliminar acentos)
     texto = unicodedata.normalize('NFD', texto)
-    texto = ''.join(char for char in texto if unicodedata.category(char) != 'Mn') # NOQA
-    return texto
+    return ''.join(char for char in texto if unicodedata.category(char) != 'Mn') # NOQA
 
 
-def load_data(archivo=EXCEL_ROUTE, sheet=EXCEL_SHEET):
-    df = pd.read_excel(archivo, sheet_name=sheet, header=0,
-                       # skiprows=range(1, 102)
-                       )
-    # print("COLUMNAS DETECTADAS:")
-    # for col in df.columns:
-    #     print(f"[{col}]")
-    # __import__("pdb").set_trace()
-    df[["NOMBRE", "APELLIDO"]] = df["NOMBRE COMPLETO"].str.split(pat=" ", n=1, expand=True) # NOQA
-    df[["NOMBRE_CON", "APELLIDO_CON"]] = df["Conyuge"].str.split(pat=" ", n=1, expand=True) # NOQA
-    df[["CALLE", "CIUDAD", "ESTADO_ZIP"]] = df["DIRECCION"].str.split(pat=",", expand=True) # NOQA
-    df["ESTADO_ZIP"] = df["ESTADO_ZIP"].str.strip()
-    df[["ESTADO", "ZIP"]] = df["ESTADO_ZIP"].str.split(pat=" ", n=1, expand=True) # NOQA
-    df['BDAY'] = pd.to_datetime(df["F. NACIMIENTO "], errors='coerce').dt.strftime('%m/%d/%Y') # NOQA
-    df['BDAYC'] = pd.to_datetime(df["Fecha NacimientoC"], errors='coerce').dt.strftime('%m/%d/%Y') # NOQA
-    df["NUMERO TLF"] = df["NUMERO TLF"].astype(str).str.replace('.0', '', regex=False) # NOQA
-    df['N DE ALIEN '] = df['N DE ALIEN '].astype(str).str.replace('.0', '', regex=False) # NOQA
-    df['ALIEN N'] = df['ALIEN N'].astype(str).str.replace('.0', '', regex=False) # NOQA
+def load_data():
+    webhook_url = "https://santiagocegarra.app.n8n.cloud/webhook/f857916b-615c-4f61-b2e4-4fced8c0d13f"
+    print("Conectando con n8n para obtener datos...")
+    try:
+        response = requests.get(webhook_url)
+        response.raise_for_status() 
+        raw_data = response.json()
+    except Exception as e:
+        print(f"Error al obtener datos de n8n: {e}")
+        return []
 
-    df = df.drop(columns=["NOMBRE COMPLETO", "DIRECCION", "ESTADO_ZIP", "F. NACIMIENTO ", "Fecha NacimientoC", "Conyuge"]) # NOQA
-    columnas_texto = ["NOMBRE", "APELLIDO", "NOMBRE_CON", "APELLIDO_CON"]
-    for col in columnas_texto:
-        df[col] = df[col].apply(normalizar_texto)
+    # Extraemos la lista primero
+    if isinstance(raw_data, dict) and "data" in raw_data:
+        raw_data = raw_data["data"]
 
-    personas = df.to_dict('records')
+    # ¡Ahora sí mostrará el número real (ej. 100 personas)!
+    print(f"¡Éxito! Se recibieron {len(raw_data)} personas para procesar.")
+
+    personas = []
+    for item in raw_data:
+        persona = {}
+        
+        # 1. Separar NOMBRE COMPLETO -> NOMBRE, APELLIDO
+        nombre_completo = item.get("NOMBRE COMPLETO", "")
+        if nombre_completo:
+            partes = str(nombre_completo).split(" ", 1)
+            persona["NOMBRE"] = partes[0] if len(partes) > 0 else ""
+            persona["APELLIDO"] = partes[1] if len(partes) > 1 else ""
+        else:
+            persona["NOMBRE"] = ""
+            persona["APELLIDO"] = ""
+
+        # 2. Separar Conyuge -> NOMBRE_CON, APELLIDO_CON
+        conyuge = item.get("Conyuge", "")
+        if conyuge:
+            partes = str(conyuge).split(" ", 1)
+            persona["NOMBRE_CON"] = partes[0] if len(partes) > 0 else ""
+            persona["APELLIDO_CON"] = partes[1] if len(partes) > 1 else ""
+        else:
+            persona["NOMBRE_CON"] = ""
+            persona["APELLIDO_CON"] = ""
+
+        # 3. Procesar DIRECCION -> CALLE, CIUDAD, ESTADO, ZIP
+        direccion = item.get("DIRECCION", "")
+        if direccion:
+            partes_dir = [p.strip() for p in str(direccion).split(",")]
+            persona["CALLE"] = partes_dir[0] if len(partes_dir) > 0 else ""
+            persona["CIUDAD"] = partes_dir[1] if len(partes_dir) > 1 else ""
+            
+            estado_zip_str = partes_dir[2] if len(partes_dir) > 2 else ""
+            partes_ez = estado_zip_str.strip().split(" ", 1)
+            persona["ESTADO"] = partes_ez[0] if len(partes_ez) > 0 else ""
+            persona["ZIP"] = partes_ez[1] if len(partes_ez) > 1 else ""
+        else:
+            persona["CALLE"] = ""
+            persona["CIUDAD"] = ""
+            persona["ESTADO"] = ""
+            persona["ZIP"] = ""
+
+        # 4. Formatear Fechas (Corregido el espacio en "F. NACIMIENTO")
+        for original, nuevo in [("F. NACIMIENTO", "BDAY"), ("Fecha NacimientoC", "BDAYC")]:
+            fecha_val = item.get(original, "")
+            if fecha_val:
+                try:
+                    fecha_str = str(fecha_val).split('T')[0] 
+                    for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%m/%d/%Y"):
+                        try:
+                            dt = datetime.strptime(fecha_str, fmt)
+                            persona[nuevo] = dt.strftime('%m/%d/%Y')
+                            break
+                        except ValueError:
+                            continue
+                    else:
+                        persona[nuevo] = str(fecha_val)
+                except:
+                    persona[nuevo] = str(fecha_val)
+            else:
+                persona[nuevo] = ""
+
+        # 5. Limpiar números y asignar campos directos (Mapeo corregido)
+        persona["row_number"] = item.get("row_number")
+        persona["NUMERO TLF"] = str(item.get("NUMERO TLF", "")).replace('.0', '')
+        persona["ALIEN N"] = str(item.get("ALIEN N Principal", "")).replace('.0', '')
+        persona["N DE ALIEN "] = str(item.get("ALIEN N Secundario", "")).replace('.0', '')
+        persona["CONYUGE_EMBARAZADA"] = str(item.get("Conyuge Embarazada", "")).strip()
+        # 6. Normalizar texto final (acentos, etc.)
+        for col in ["NOMBRE", "APELLIDO", "NOMBRE_CON", "APELLIDO_CON"]:
+            persona[col] = normalizar_texto(persona.get(col, ""))
+            
+        personas.append(persona)
+        
     return personas

@@ -4,6 +4,25 @@ from settings import EXCEL_SHEET, EXCEL_ROUTE, USERNAME, USER_DATA_DIR, PASSWORD
 from src.scraper_properties import SELECTORS, URLS
 from src.data import load_data
 import time
+import requests
+
+
+def update_row(fila_id):
+    """Envía un POST a n8n para marcar la fila como Inscrita"""
+    # Tu URL real del nuevo webhook de producción
+    url_webhook_update = "https://santiagocegarra.app.n8n.cloud/webhook/actualizar_inscrito" # NOQA
+
+    payload = {
+        "fila": fila_id,
+        "nuevo_estado": "Inscrito"
+    }
+
+    try:
+        r = requests.post(url_webhook_update, json=payload)
+        r.raise_for_status()
+        print(f"Sheet actualizado: Fila {fila_id} marcada como Inscrita.")
+    except Exception as e:
+        print(f"⚠️ No se pudo actualizar Sheets para la fila {fila_id}: {e}")
 
 
 class CallScraper:
@@ -145,15 +164,8 @@ class CallScraper:
         self.fill_alien(page, alien_number)
         page.click(SELECTORS["continue"])
         time.sleep(5)
-        # try:
-        #     botones = page.locator("button[aria-label='No']").all()
-        #     for boton in botones:
-        #         boton.click()
-        #         time.sleep(0.3)
-        # except Exception as e:
-        #     print(f"Error al clickear botones 'No': {e}")
-        # page.click(SELECTORS["continue"])
-        # time.sleep(4)
+        # PERSONA 2 PERSONA 2 PERSONA 2 PERSONA 2
+        # PERSONA 2 PERSONA 2 PERSONA 2 PERSONA 2
         # PERSONA 2 PERSONA 2 PERSONA 2 PERSONA 2
         buttons = page.locator("//fieldset//button[@aria-label='No']")
         count = buttons.count()
@@ -179,13 +191,15 @@ class CallScraper:
         self.fill_alien2(page, alien_number)
         page.click(SELECTORS["continue"])
         time.sleep(5)
-        try:
-            botones = page.locator("button[aria-label='No']").all()
-            for boton in botones:
-                boton.click()
-                time.sleep(0.3)
-        except Exception as e:
-            print(f"Error al clickear botones 'No': {e}")
+        if persona["CONYUGE_EMBARAZADA"].lower() != 'si':
+            try:
+                botones = page.locator("button[aria-label='No']").all()
+                for boton in botones:
+                    boton.click()
+                    time.sleep(0.3)
+            except Exception as e:
+                print(f"Error al clickear botones 'No': {e}")
+        time.sleep(2.5)
         page.click("text=Panel")
         time.sleep(3)
         page.click("text=Iniciar Solicitud")
@@ -220,6 +234,12 @@ class CallScraper:
                 self.fillData(page, persona)
                 time.sleep(3)
                 self.fill_form(page, persona)
+                print(f"✅ ¡Inscripción exitosa para {persona['NOMBRE']}!")
+                fila_excel = persona.get("row_number")
+                if fila_excel:
+                    update_row(fila_excel)
+                else:
+                    print("⚠️ No se encontró 'row_number' para esta persona. No se pudo actualizar Sheets.") # NOQA
                 # __import__("pdb").set_trace()
 
             # browser.close()
