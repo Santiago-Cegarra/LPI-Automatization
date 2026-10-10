@@ -1,9 +1,27 @@
-from playwright.sync_api import sync_playwright
-from playwright.sync_api import Page
-from settings import *
-from src.scraper_properties import SELECTORS, URLS
-from src.data import load_data
 import time
+
+import requests
+from playwright.sync_api import Page, sync_playwright
+
+from settings import EXCEL_SHEET, PASSWORD, USERNAME, WH_UPDATE_SHEET
+from src.data import load_data
+from src.scraper_properties import SELECTORS, URLS
+
+
+def update_row(fila_id):
+    """Envía un POST a n8n para marcar la fila como Inscrita."""
+
+    payload = {
+        "fila": fila_id,
+        "nuevo_estado": "Inscrito"
+    }
+
+    try:
+        r = requests.post(WH_UPDATE_SHEET, json=payload)
+        r.raise_for_status()
+        print(f"Sheet actualizado: Fila {fila_id} marcada como Inscrita.")
+    except Exception as e:
+        print(f"⚠️ No se pudo actualizar Sheets para la fila {fila_id}: {e}")
 
 
 class CallScraper:
@@ -38,9 +56,8 @@ class CallScraper:
         page.fill(SELECTORS["first_name"], persona['NOMBRE_CON'])
         page.fill(SELECTORS["last_name"], persona['APELLIDO_CON'])
         page.fill(SELECTORS["date_birth"], persona['BDAYC'])
-        page.click("text=Hombre")
+        page.click("text=Mujer")
         page.click("//div[@id='relationshipToPerson.name_input']")
-        # __import__("pdb").set_trace()
         page.press("//input[@name='relationshipToPerson.name']", "Enter")
         page.check(SELECTORS["nossn2"])
         page.click("text=Guardar Persona")
@@ -52,7 +69,7 @@ class CallScraper:
         page.check(SELECTORS["accept2"])
         page.click(SELECTORS["continue"])
         time.sleep(1)
-        page.click("text=Mujer")
+        page.click("text=Hombre")
         page.check(SELECTORS["nossn1"])
         page.click(SELECTORS["continue"])
         time.sleep(3)
@@ -60,27 +77,26 @@ class CallScraper:
         page.fill(SELECTORS["street"], persona["CALLE"])
         page.fill(SELECTORS["city"], persona["CIUDAD"])
         page.fill(SELECTORS["zip"], persona["ZIP"])
-        time.sleep(1)
-        page.click(SELECTORS["continue"])
         time.sleep(2)
+        page.click(SELECTORS["continue"])
+        time.sleep(3)
         if page.locator("text=¿Estás seguro de que su dirección es correcta?").is_visible(): # noqa
             page.click("button:has-text('Continuar')")
-        time.sleep(1)
+        time.sleep(3)
         page.fill(SELECTORS["phone"], persona["NUMERO TLF"])
         page.click("text=Enviar avisos en papel por correo")
         page.click(SELECTORS["continue"])
         time.sleep(10)
         self.addSpouse(page, persona)
-        time.sleep(1)
+        time.sleep(2)
         page.click(SELECTORS["continue"])
         page.click("//button[@aria-label='Sí']")
         page.click(SELECTORS["continue"])
         time.sleep(2)
         self.taxes(page)
         # menor de 19
-        page.wait_for_selector('//fieldset[@id="livesWithChildAtAddress_fieldset"]')
+        page.wait_for_selector('//fieldset[@id="livesWithChildAtAddress_fieldset"]') # NOQA
         time.sleep(2)
-        # __import__("pdb").set_trace()
         page.click("//button[@aria-label='No']")
         page.click(SELECTORS["continue"])
         time.sleep(7)
@@ -89,35 +105,21 @@ class CallScraper:
         page.wait_for_selector("//span[contains(text(), 'ciudadano')]")
         self.statusfill(page, persona)
 
-    def fill_alien(self, page: Page, alienN):
-        page.evaluate('''(alienNumberValue,n) => {
-            const selector = 'input[name="managedPeople[0][alienNumber]"]';
+    def fill_alien(self, page: Page, alien_number: str, person_index: int):
+        """Completa el número de extranjero de la persona indicada."""
+        page.evaluate('''({ alienNumberValue, personIndex }) => {
+            const selector = `input[name="managedPeople[${personIndex}][alienNumber]"]`;
             const input = document.querySelector(selector);
 
             if (input) {
                 input.focus();
-                input.value = "A-"+alienNumberValue;  // Usar el argumento       
+                input.value = "A-" + alienNumberValue;
                 input.dispatchEvent(new Event('focus', { bubbles: true }));
                 input.dispatchEvent(new Event('input', { bubbles: true }));
                 input.dispatchEvent(new Event('change', { bubbles: true }));
                 input.dispatchEvent(new Event('blur', { bubbles: true }));
             }
-        }''', alienN)
-
-    def fill_alien2(self, page: Page, alienN):
-        page.evaluate('''(alienNumberValue,n) => {
-            const selector = 'input[name="managedPeople[1][alienNumber]"]';
-            const input = document.querySelector(selector);
-
-            if (input) {
-                input.focus();
-                input.value = "A-"+alienNumberValue;  // Usar el argumento       
-                input.dispatchEvent(new Event('focus', { bubbles: true }));
-                input.dispatchEvent(new Event('input', { bubbles: true }));
-                input.dispatchEvent(new Event('change', { bubbles: true }));
-                input.dispatchEvent(new Event('blur', { bubbles: true }));
-            }
-        }''', alienN)
+        }''', {"alienNumberValue": alien_number, "personIndex": person_index})
 
     def statusfill(self, page: Page, persona):
         # Selecciones de NO
@@ -142,19 +144,10 @@ class CallScraper:
         locator_input.first.press("Enter") # NOQA
         time.sleep(2)
         alien_number = persona['ALIEN N']
-        self.fill_alien(page, alien_number)
+        self.fill_alien(page, alien_number, 0)
         page.click(SELECTORS["continue"])
         time.sleep(5)
-        try:
-            botones = page.locator("button[aria-label='No']").all()
-            for boton in botones:
-                boton.click()
-                time.sleep(0.3)
-        except Exception as e:
-            print(f"Error al clickear botones 'No': {e}")
-        page.click(SELECTORS["continue"])
-        time.sleep(4)
-        # PERSONA 2 PERSONA 2 PERSONA 2 PERSONA 2
+        # Datos de la segunda persona
         buttons = page.locator("//fieldset//button[@aria-label='No']")
         count = buttons.count()
         for i in range(count):
@@ -176,16 +169,32 @@ class CallScraper:
         locator_input.first.press("Enter") # NOQA
         time.sleep(2)
         alien_number = persona['N DE ALIEN ']
-        self.fill_alien2(page, alien_number)
+        self.fill_alien(page, alien_number, 1)
         page.click(SELECTORS["continue"])
         time.sleep(5)
-        try:
-            botones = page.locator("button[aria-label='No']").all()
-            for boton in botones:
-                boton.click()
-                time.sleep(0.3)
-        except Exception as e:
-            print(f"Error al clickear botones 'No': {e}")
+        if persona["CONYUGE_EMBARAZADA"].lower() != 'si':
+            try:
+                botones = page.locator("button[aria-label='No']").all()
+                for boton in botones:
+                    boton.click()
+                    time.sleep(0.3)
+            except Exception as e:
+                print(f"Error al clickear botones 'No': {e}")
+        else:
+            try:
+                page.locator("button[aria-label='Sí']").first.click() 
+                page.wait_for_timeout(1000)
+                caja_bebes = page.locator("id=managedPeople[0][pregnancyBabiesExpected]_input") # NOQA
+                caja_bebes.click()
+                page.wait_for_timeout(500)
+                page.keyboard.type("1")
+                page.keyboard.press("Enter")
+                page.wait_for_timeout(500)
+            except Exception as e:
+                print(f"❌ Error en el flujo de 'Sí embarazada': {e}")
+        time.sleep(2.5)
+        page.click(SELECTORS["continue"])
+        time.sleep(5)
         page.click("text=Panel")
         time.sleep(3)
         page.click("text=Iniciar Solicitud")
@@ -220,6 +229,9 @@ class CallScraper:
                 self.fillData(page, persona)
                 time.sleep(3)
                 self.fill_form(page, persona)
-                # __import__("pdb").set_trace()
-
-            # browser.close()
+                print(f"✅ ¡Inscripción exitosa para {persona['NOMBRE']}!")
+                fila_excel = persona.get("row_number")
+                if fila_excel:
+                    update_row(fila_excel)
+                else:
+                    print("⚠️ No se encontró 'row_number' para esta persona. No se pudo actualizar Sheets.") # NOQA

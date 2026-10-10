@@ -7,5 +7,8 @@ env/
 profile*/
 # Archivos de Excel
 *.xlsx
+#Textos de testing
+*.txt
 # Propiedades del scraper
 src/scraper_properties.py
+settings.py
