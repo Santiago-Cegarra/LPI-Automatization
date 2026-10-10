@@ -34,7 +34,7 @@ def load_data():
     personas = []
     for item in raw_data:
         persona = {}
-        
+
         # 1. Separar NOMBRE COMPLETO -> NOMBRE, APELLIDO
         nombre_completo = item.get("NOMBRE COMPLETO", "")
         if nombre_completo:
@@ -61,7 +61,6 @@ def load_data():
             partes_dir = [p.strip() for p in str(direccion).split(",")]
             persona["CALLE"] = partes_dir[0] if len(partes_dir) > 0 else ""
             persona["CIUDAD"] = partes_dir[1] if len(partes_dir) > 1 else ""
-            
             estado_zip_str = partes_dir[2] if len(partes_dir) > 2 else ""
             partes_ez = estado_zip_str.strip().split(" ", 1)
             persona["ESTADO"] = partes_ez[0] if len(partes_ez) > 0 else ""
@@ -73,7 +72,7 @@ def load_data():
             persona["ZIP"] = ""
 
         # 4. Formatear Fechas (Corregido el espacio en "F. NACIMIENTO")
-        for original, nuevo in [("F. NACIMIENTO", "BDAY"), ("Fecha NacimientoC", "BDAYC")]:
+        for original, nuevo in [("F. NACIMIENTO", "BDAY"), ("Fecha NacimientoC", "BDAYC")]: # NOQA
             fecha_val = item.get(original, "")
             if fecha_val:
                 try:
@@ -101,7 +100,6 @@ def load_data():
         # 6. Normalizar texto final (acentos, etc.)
         for col in ["NOMBRE", "APELLIDO", "NOMBRE_CON", "APELLIDO_CON"]:
             persona[col] = normalizar_texto(persona.get(col, ""))
-            
+
         personas.append(persona)
-        
     return personas
